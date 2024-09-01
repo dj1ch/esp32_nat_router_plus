@@ -14,7 +14,8 @@
 #include "esp_console.h"
 #include "esp_system.h"
 #include "esp_sleep.h"
-#include "esp_spi_flash.h"
+#include "esp_flash.h"
+#include "spi_flash_mmap.h"
 #include "driver/rtc_io.h"
 #include "driver/uart.h"
 #include "argtable3/argtable3.h"
@@ -22,6 +23,9 @@
 #include "freertos/task.h"
 #include "cmd_system.h"
 #include "sdkconfig.h"
+#include "esp_chip_info.h"
+#include <inttypes.h>
+
 
 #ifdef CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS
 #define WITH_TASKS_INFO 1
@@ -55,18 +59,49 @@ void register_system(void)
 /* 'version' command */
 static int get_version(int argc, char **argv)
 {
+    const char *model;
     esp_chip_info_t info;
+    uint32_t flash_size;
     esp_chip_info(&info);
+
+    switch(info.model) {
+        case CHIP_ESP32:
+            model = "ESP32";
+            break;
+        case CHIP_ESP32S2:
+            model = "ESP32-S2";
+            break;
+        case CHIP_ESP32S3:
+            model = "ESP32-S3";
+            break;
+        case CHIP_ESP32C3:
+            model = "ESP32-C3";
+            break;
+        case CHIP_ESP32H2:
+            model = "ESP32-H2";
+            break;
+        case CHIP_ESP32C2:
+            model = "ESP32-C2";
+            break;
+        default:
+            model = "Unknown";
+            break;
+    }
+
+    if(esp_flash_get_size(NULL, &flash_size) != ESP_OK) {
+        printf("Get flash size failed");
+        return 1;
+    }
     printf("IDF Version:%s\r\n", esp_get_idf_version());
     printf("Chip info:\r\n");
-    printf("\tmodel:%s\r\n", info.model == CHIP_ESP32 ? "ESP32" : "Unknow");
+    printf("\tmodel:%s\r\n", model);
     printf("\tcores:%d\r\n", info.cores);
-    printf("\tfeature:%s%s%s%s%d%s\r\n",
+    printf("\tfeature:%s%s%s%s%"PRIu32"%s\r\n",
            info.features & CHIP_FEATURE_WIFI_BGN ? "/802.11bgn" : "",
            info.features & CHIP_FEATURE_BLE ? "/BLE" : "",
            info.features & CHIP_FEATURE_BT ? "/BT" : "",
            info.features & CHIP_FEATURE_EMB_FLASH ? "/Embedded-Flash:" : "/External-Flash:",
-           spi_flash_get_chip_size() / (1024 * 1024), " MB");
+           flash_size / (1024 * 1024), " MB");
     printf("\trevision number:%d\r\n", info.revision);
     return 0;
 }
@@ -105,7 +140,7 @@ static void register_restart(void)
 
 static int free_mem(int argc, char **argv)
 {
-    printf("%d\n", esp_get_free_heap_size());
+    printf("%lu\n", (unsigned long)esp_get_free_heap_size());;
     return 0;
 }
 
@@ -124,7 +159,7 @@ static void register_free(void)
 static int heap_size(int argc, char **argv)
 {
     uint32_t heap_size = heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT);
-    ESP_LOGI(TAG, "min heap size: %u", heap_size);
+    ESP_LOGI(TAG, "min heap size: %lu", (unsigned long)heap_size);
     return 0;
 }
 

@@ -15,6 +15,8 @@ extern "C"
 
 #include <stdint.h>
 #include "esp_err.h"
+#include <stdbool.h>
+
 #define MAX_LOGIN_ATTEMPTS (5)
 #define LOCK_OUT_TIME_MINUTES (1) // MINUTES
 #define DEFAULT_AP_IP "192.168.4.1"

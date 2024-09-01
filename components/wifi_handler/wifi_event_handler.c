@@ -77,16 +77,14 @@ static void wifi_disconnect_handler(const uint8_t reason)
 // Function to set DNS server
 void set_dns_server(esp_netif_dns_info_t dnsIP)
 {
-    dhcps_offer_t opt_val = OFFER_DNS;
-    esp_netif_dhcps_stop(wifiAP);
+    ESP_ERROR_CHECK(esp_netif_dhcps_stop(wifiAP));
     if (IsCustomDnsEnable || has_static_ip)
     {
         dnsIP.ip.u_addr.ip4.addr = ipaddr_addr(customDNSip);
     }
     ESP_ERROR_CHECK(esp_netif_set_dns_info(wifiAP, ESP_NETIF_DNS_MAIN, &dnsIP));
-    esp_netif_dhcps_option(wifiAP, ESP_NETIF_OP_SET, ESP_NETIF_DOMAIN_NAME_SERVER, &opt_val, sizeof(opt_val));
-    ESP_LOGI(TAG, "set dns to:" IPSTR, IP2STR(&(dnsIP.ip.u_addr.ip4)));
-    esp_netif_dhcps_start(wifiAP);
+    ESP_LOGI(TAG, "set DNS to: " IPSTR, IP2STR(&(dnsIP.ip.u_addr.ip4)));
+    ESP_ERROR_CHECK(esp_netif_dhcps_start(wifiAP));
 }
 
 //-----------------------------------------------------------------------------

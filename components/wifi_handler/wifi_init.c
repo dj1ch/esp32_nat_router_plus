@@ -12,7 +12,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 #include <esp_wifi.h>
-#include <esp_wpa2.h>
+#include <esp_eap_client.h>
 #include <esp_netif.h>
 #include <esp_err.h>
 
@@ -30,6 +30,11 @@ esp_netif_t *wifiSTA;
 
 bool has_static_ip = false;
 
+esp_err_t esp_eap_client_set_identity(const unsigned char *identity, int len);
+esp_err_t esp_eap_client_set_username(const unsigned char *username, int len);
+esp_err_t esp_eap_client_set_password(const unsigned char *password, int len);
+esp_err_t esp_eap_client_enable(void);
+
 //-----------------------------------------------------------------------------
 // initiating wifi setup
 void wifi_init()
@@ -41,15 +46,15 @@ void wifi_init()
     wifiAP = esp_netif_create_default_wifi_ap();
     wifiSTA = esp_netif_create_default_wifi_sta();
 
-    tcpip_adapter_ip_info_t ipInfo_sta;
+    esp_netif_ip_info_t ipInfo_sta;
     if ((strlen(ssid) > 0) && (strlen(static_ip) > 0) && (strlen(subnet_mask) > 0) && (strlen(gateway_addr) > 0))
     {
         has_static_ip = true;
         my_ip = ipInfo_sta.ip.addr = ipaddr_addr(static_ip);
         ipInfo_sta.gw.addr = ipaddr_addr(gateway_addr);
         ipInfo_sta.netmask.addr = ipaddr_addr(subnet_mask);
-        tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA); // Don't run a DHCP client
-        tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &ipInfo_sta);
+        esp_netif_dhcpc_stop(wifiSTA); // Don't run a DHCP client
+        esp_netif_set_ip_info(wifiSTA, &ipInfo_sta);
         apply_portmap_tab();
     }
 
@@ -58,7 +63,7 @@ void wifi_init()
     ipInfo_ap.ip.addr = my_ap_ip;
     ipInfo_ap.gw.addr = my_ap_ip;
     IP4_ADDR(&ipInfo_ap.netmask, 255, 255, 255, 0);
-    esp_netif_dhcps_stop(wifiAP); // stop before setting ip WifiAP
+    esp_netif_dhcps_stop(wifiAP); // stop before setting IP for WifiAP
     esp_netif_set_ip_info(wifiAP, &ipInfo_ap);
     esp_netif_dhcps_start(wifiAP);
     wifi_events_register_init();
@@ -94,7 +99,7 @@ void wifi_init()
 
         // Set SSID
         strlcpy((char *)wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid));
-        // Set passwprd
+        // Set password
         if (strlen(ent_username) == 0)
         {
             ESP_LOGI(TAG, "STA regular connection");
@@ -106,15 +111,15 @@ void wifi_init()
             ESP_LOGI(TAG, "STA enterprise connection");
             if (strlen(ent_username) != 0 && strlen(ent_identity) != 0)
             {
-                esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)ent_identity, strlen(ent_identity)); // provide identity
+                esp_eap_client_set_identity((uint8_t *)ent_identity, strlen(ent_identity)); // provide identity
             }
             else
             {
-                esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)ent_username, strlen(ent_username));
+                esp_eap_client_set_identity((uint8_t *)ent_username, strlen(ent_username));
             }
-            esp_wifi_sta_wpa2_ent_set_username((uint8_t *)ent_username, strlen(ent_username)); // provide username
-            esp_wifi_sta_wpa2_ent_set_password((uint8_t *)passwd, strlen(passwd));             // provide password
-            esp_wifi_sta_wpa2_ent_enable();
+            esp_eap_client_set_username((uint8_t *)ent_username, strlen(ent_username)); // provide username
+            esp_eap_client_set_password((uint8_t *)passwd, strlen(passwd));             // provide password
+            esp_eap_client_enable();
         }
 
         ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_AP, &ap_config));
@@ -125,8 +130,8 @@ void wifi_init()
         ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_AP, &ap_config));
     }
     // Enable DNS (offer) for dhcp server
-    dhcps_offer_t dhcps_dns_value = OFFER_DNS;
-    dhcps_set_option_info(6, &dhcps_dns_value, sizeof(dhcps_dns_value));
+    esp_netif_dhcp_option_id_t dhcps_dns_value = ESP_NETIF_DHCP_CLIENT;
+    esp_netif_dhcps_option(wifiAP, ESP_NETIF_DHCP_SERVER, ESP_NETIF_DHCP_CLIENT, &dhcps_dns_value, sizeof(dhcps_dns_value));
 
     ESP_ERROR_CHECK(esp_wifi_start());
 

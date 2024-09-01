@@ -16,6 +16,7 @@ extern "C"
 #include <stdint.h>
 #include <stdlib.h>
 #include <esp_err.h>
+#include "esp_timer.h"
 
 #ifdef ICACHE_FLASH
 #define ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))

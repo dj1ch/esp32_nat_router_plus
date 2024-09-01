@@ -18,7 +18,7 @@
 
 Before diving into the project, there are several prerequisites that need to be installed:
 
- ***Note : Currently Supporting upto espidf 4.x.x and PltformIO : `PLATFORM: Espressif 32 (5.x.x)`***
+ ***Note : Currently Supporting up to `esp-idf` 5.3.0 and PlatformIO : `PLATFORM: Espressif 32 (5.x.x)`***
 
 - [VisualStudio Code](https://code.visualstudio.com/)
 - [PlatformIO IDE for VSCode](https://platformio.org/install/ide?install=vscode)

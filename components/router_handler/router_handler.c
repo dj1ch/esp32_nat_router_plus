@@ -17,6 +17,7 @@
 #include <lwip/err.h>
 #include <lwip/sys.h>
 #include <lwip/netdb.h>
+#include <lwip/ip_addr.h>
 #include <lwip/lwip_napt.h>
 #include <esp_netif.h>
 #include <netdb.h>
